@@ -5,6 +5,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const decryptSubmit = document.getElementById("decrypt-submit")
     const encrypted = document.getElementById("encrypted")
     const salt = new Date().getTime()
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder("utf-8");
+    const randomPass = window.crypto.getRandomValues(new Uint8Array(12));
 
     const triggerEncryption = async () => {
         const derivedKey = await deriveKey(key.value, salt)
@@ -14,23 +17,24 @@ document.addEventListener("DOMContentLoaded", () => {
         encrypted.value = JSON.stringify({
             keyStr: key.value,
             salt: salt,
-            iv: iv,
+            iv: btoa(String.fromCharCode(...iv)),
             payload: encryptedPayload
         })
     }
 
     const triggerDecryption = async () => {
         const encryptedStr = encrypted.value
-        const { keyStr, salt, iv, payload } = JSON.parse(encryptedStr)
+        const { keyStr, salt, iv: ivBase64, payload } = JSON.parse(encryptedStr)
+        const iv = Uint8Array.from(atob(ivBase64), c => c.charCodeAt(0));
+        const derivedKey = await deriveKey(keyStr, salt)
 
-        decrypt(keyStr, salt, iv, payload)
+        getDecryptedPayload(derivedKey, iv, payload)
     }
 
     const deriveKey = async (password, salt) => {
-        const enc = new TextEncoder();
         const keyMaterial = await window.crypto.subtle.importKey(
             "raw",
-            enc.encode(password),
+            encoder.encode(password),
             "PBKDF2",
             false,
             ["deriveKey"]
@@ -39,7 +43,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return await window.crypto.subtle.deriveKey(
             {
                 name: "PBKDF2",
-                salt: enc.encode(salt), // Store this with your data
+                salt: encoder.encode(salt.toString()), // Store this with your data
                 iterations: 100000,
                 hash: "SHA-256"
             },
@@ -51,8 +55,7 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     const getEncryptedPayload = async (payload, derivedKey) => {
-        const enc = new TextEncoder();
-        const encodedPayload = enc.encode(payload);
+        const encodedPayload = encoder.encode(payload);
 
         const encryptedPayload = await window.crypto.subtle.encrypt(
             {
@@ -68,45 +71,23 @@ document.addEventListener("DOMContentLoaded", () => {
         return base64
     }
 
-    async function decryptMessage(key) {
+    const getDecryptedPayload = async (derivedKey, iv, payload) => {
+        payload = Uint8Array.from(atob(payload), c => c.charCodeAt(0));
+
         let decrypted = await window.crypto.subtle.decrypt(
             {
                 name: "AES-GCM",
                 iv
             },
-            key,
-            ciphertext
-        );
-
-        let dec = new TextDecoder();
-        const decryptedValue = document.querySelector(".aes-gcm .decrypted-value");
-        decryptedValue.classList.add('fade-in');
-        decryptedValue.addEventListener('animationend', () => {
-            decryptedValue.classList.remove('fade-in');
-        }, { once: true });
-        decryptedValue.textContent = dec.decode(decrypted);
-    }
-    const decrypt = (keyStr, salt, iv, payload) => {
-        const buffer = Uint8Array.from(atob(payload), c => c.charCodeAt(0));
-
-        const enc = new TextEncoder();
-        const encodedPayload = enc.encode(payload);
-
-        const encryptedPayload = await window.crypto.subtle.encrypt(
-            {
-                name: "AES-GCM",
-                iv
-            },
             derivedKey,
-            encodedPayload
+            payload.buffer
         );
 
-        let buffer = new Uint8Array(encryptedPayload, 0, encryptedPayload.byteLength);
-        const base64 = btoa(String.fromCharCode(...buffer));
-        return base64
+        const arr = new Uint8Array(decrypted)
+        return decoder.decode(arr)
     }
 
-    key.value = salt + key.value
+    key.value = salt + randomPass
 
     raw.addEventListener("change", () => triggerEncryption())
     encrypted.addEventListener("change", () => triggerDecryption())
