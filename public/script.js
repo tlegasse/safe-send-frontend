@@ -1,4 +1,11 @@
-class SafeSend {
+class SafeSendApp {
+    createUrl   = 'https://22erbbnurht77kwkxzmfbkqp240laulz.lambda-url.us-east-1.on.aws/'
+    retrieveUrl = 'https://fz5bva7ou3qhoyuhzsz6km2r5u0dgjet.lambda-url.us-east-1.on.aws/'
+    appState
+    appStateEncrypt = 'encrypt'
+    appStateDecrypt = 'decrypt'
+    secretId
+
     constructor() {
         this.encoder = new TextEncoder("utf-8");
         this.decoder = new TextDecoder("utf-8");
@@ -6,12 +13,40 @@ class SafeSend {
         this.setupElements()
         this.setupEncrpytionVals()
         this.setupListeners()
+        this.retrieveUrlParams()
+        this.setupAppState()
     }
 
     setupElements() {
-        this.userInput = document.getElementById("raw")
-        this.decryptSubmit = document.getElementById("decrypt-submit")
-        this.encrypted = document.getElementById("encrypted")
+        this.appRoot = document.querySelector(".safe-send")
+        this.userInput = document.getElementById("userInput")
+
+        this.expirySelector = document.getElementById("expiry")
+        this.encryptSubmit = document.getElementById("encryptButton")
+        this.shareUrl = document.getElementById("url")
+
+        this.decryptSubmit = document.getElementById("revealButton")
+    }
+
+    async setupAppState() {
+        const url = new URL(window.location.href)
+        const params = new URLSearchParams(url.search)
+
+        const id = params.get("id")
+        const rawKey = window.location.hash.replace("#", "")
+        if (id && rawKey) {
+            this.secretId = id
+            this.key = await this.importKey(rawKey)
+        }
+
+        this.appState = id && rawKey ? this.appStateDecrypt : this.appStateEncrypt
+
+        this.appRoot.dataset.state = this.appState
+
+    }
+
+    retrieveUrlParams() {
+        const url = new URL(window.location)
     }
 
     async setupEncrpytionVals() {
@@ -42,19 +77,46 @@ class SafeSend {
     async triggerEncryption() {
         const payload = this.userInput.value
         const encryptedPayload = await this.getEncryptedPayload(payload)
+        const expiry = this.expirySelector.value
 
-        encrypted.value = JSON.stringify({
-            keyStr: await this.exportKey(),
+        const exportedKey = await this.exportKey()
+
+        const bodyContent = {
             iv: btoa(String.fromCharCode(...this.iv)),
-            payload: encryptedPayload
+            payload: encryptedPayload,
+            expiry: parseInt(expiry)
+        }
+
+        const response = await fetch(this.createUrl, {
+            method: 'PUT',
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: JSON.stringify(bodyContent)
         })
+
+        if (!response.ok) {
+            throw new Error(`Response status: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        const shareUrl = `${window.location.origin}/?id=${result.id}#${exportedKey}`
+        this.shareUrl.innerHTML = shareUrl
+        this.appRoot.classList.add("form-submitted")
     }
 
     async triggerDecryption() {
-        const encryptedStr = encrypted.value
-        const { keyStr, iv: ivBase64, payload } = JSON.parse(encryptedStr)
-        const iv = Uint8Array.from(atob(ivBase64), c => c.charCodeAt(0));
-        this.key = await this.importKey(keyStr)
+        const response = await fetch(`${this.retrieveUrl}/?id=${this.secretId}`)
+
+        if (!response.ok) {
+            throw new Error(`Response status: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        const { payload } = result
+        const iv = Uint8Array.from(atob(result.iv), c => c.charCodeAt(0));
 
         console.log(await this.getDecryptedPayload(payload, iv))
     }
@@ -91,11 +153,11 @@ class SafeSend {
     }
 
     setupListeners() {
-        this.userInput.addEventListener("change", () => this.triggerEncryption())
-        this.encrypted.addEventListener("change", () => this.triggerDecryption())
+        this.encryptSubmit.addEventListener("click", () => this.triggerEncryption())
+        this.decryptSubmit.addEventListener("click", () => this.triggerDecryption())
     }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-    new SafeSend()
+    new SafeSendApp()
 })

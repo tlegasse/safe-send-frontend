@@ -5,9 +5,42 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title></title>
         <script src="./script.js"></script>
+        <link href="./style.css" rel="stylesheet" />
     </head>
     <body>
-        <textarea rows="10" id="raw" placeholder="raw">test</textarea>
-        <textarea rows="10" id="encrypted" placeholder="encrypted"></textarea>
+        <div class="safe-send">
+            <div class="safe-send__encrypt">
+                <div class="safe-send__form form">
+                    <div class="safe-send__form-inner form-inner">
+                        <textarea rows="10" id="userInput" placeholder="Add your text content here."></textarea>
+
+                        <label for="expiry">Time to live</label>
+                        <select id="expiry">
+                            <option value="3600">1hr</option>
+                            <option value="86400">24hrs</option>
+                            <option value="172800">48hrs</option>
+                            <option value="604800">48hrs</option>
+                        </select>
+
+                        <button type="submit" id="encryptButton">Retrieve</button>
+                    </div>
+                </div>
+
+                <div class="safe-send__url-share-container">
+                    <p>Done, share this: <span id="url"></span></p>
+                </div>
+            </div>
+            <div class="safe-send__decrypt">
+                <div class="safe-send__reveal">
+                    <div class="safe-send__reveal-inner">
+                        <p>Click here to reveal your secret.</p>
+                        <button type="submit" id="revealButton">Retrieve</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="body-content">
+            <p>Hy there, stay a while, will ya?</p>
+        </div>
     </body>
 </html>

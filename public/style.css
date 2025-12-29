@@ -1,0 +1,17 @@
+.safe-send__encrypt,
+.safe-send__decrypt,
+.safe-send__url-share-container {
+  display: none;
+}
+
+.safe-send[data-state="decrypt"] .safe-send__decrypt {
+  display: block;
+}
+
+.safe-send:not([data-state="decrypt"]) .safe-send__encrypt {
+  display: block;
+}
+
+.safe-send.form-submitted .safe-send__url-share-container {
+  display: block;
+}
