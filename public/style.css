@@ -49,3 +49,7 @@
 .safe-send__decrypted-message:not([data-status-code="404"]):not([data-status-code="500"]) .decrypted-message__failure-other {
   display: none;
 }
+
+.safe-send.decoded-response-returned .safe-send__reveal {
+  display: none;
+}
