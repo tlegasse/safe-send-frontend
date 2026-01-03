@@ -24,8 +24,13 @@ class SafeSendApp {
         this.expirySelector = document.getElementById("expiry")
         this.encryptSubmit = document.getElementById("encryptButton")
         this.shareUrl = document.getElementById("url")
+        this.copyToast = document.getElementById("copyToast")
 
         this.decryptSubmit = document.getElementById("revealButton")
+        this.decryptMessageContent = document.getElementById("decryptedMessage")
+        this.decryptMessageContainer = document.querySelector(".safe-send__decrypted-message")
+
+        this.resetAppElements = document.querySelectorAll(".reset-app")
     }
 
     async setupAppState() {
@@ -42,7 +47,6 @@ class SafeSendApp {
         this.appState = id && rawKey ? this.appStateDecrypt : this.appStateEncrypt
 
         this.appRoot.dataset.state = this.appState
-
     }
 
     retrieveUrlParams() {
@@ -108,8 +112,15 @@ class SafeSendApp {
 
     async triggerDecryption() {
         const response = await fetch(`${this.retrieveUrl}/?id=${this.secretId}`)
+        this.appRoot.classList.add("decoded-response-returned")
+
+        if (!this.decryptMessageContainer) return
+        this.decryptMessageContainer.classList.add("display")
 
         if (!response.ok) {
+            this.decryptMessageContainer.dataset.statusCode = response.status
+            this.decryptMessageContainer.classList.add("error")
+
             throw new Error(`Response status: ${response.status}`);
         }
 
@@ -118,7 +129,8 @@ class SafeSendApp {
         const { payload } = result
         const iv = Uint8Array.from(atob(result.iv), c => c.charCodeAt(0));
 
-        console.log(await this.getDecryptedPayload(payload, iv))
+        const retrievedMessage = await this.getDecryptedPayload(payload, iv)
+        this.decryptMessageContent.innerHTML = retrievedMessage
     }
 
     async getEncryptedPayload(payload) {
@@ -152,12 +164,42 @@ class SafeSendApp {
         return this.decoder.decode(arr)
     }
 
+    triggerShareButtonClick() {
+        const visibleClass = "visible"
+
+        navigator.clipboard.writeText(this.shareUrl.innerHTML)
+        this.copyToast.classList.add(visibleClass)
+
+        setTimeout(() => {
+            this.copyToast.classList.remove(visibleClass)
+        }, 1500)
+    }
+
+    resetApp() {
+        this.setupEncrpytionVals()
+
+        this.appRoot.removeAttribute("data-state")
+        this.appRoot.classList.remove("form-submitted")
+        this.appRoot.classList.remove("decoded-response-returned")
+        this.decryptMessageContainer.classList.remove("error")
+        this.decryptMessageContainer.classList.remove("display")
+        this.decryptMessageContainer.removeAttribute("data-status-code")
+    }
+
     setupListeners() {
         this.encryptSubmit.addEventListener("click", () => this.triggerEncryption())
         this.decryptSubmit.addEventListener("click", () => this.triggerDecryption())
+        this.shareUrl.addEventListener("click", () => this.triggerShareButtonClick())
+
+        for (const ele of this.resetAppElements) {
+            ele.addEventListener("click", () => this.resetApp())
+        }
     }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
     new SafeSendApp()
+
+    const yearSelector = document.getElementById("year")
+    yearSelector.innerHTML = (new Date).getFullYear()
 })

@@ -15,3 +15,37 @@
 .safe-send.form-submitted .safe-send__url-share-container {
   display: block;
 }
+
+#copyToast:not(.visible) {
+  display: none;
+}
+
+.safe-send:not(.decoded-response-returned) .decrypted-message__failure,
+.safe-send:not(.decoded-response-returned) .decrypted-message__success {
+  display: none;
+}
+
+
+.safe-send__decrypted-message:not(.error) .decrypted-message__failure {
+  display: none;
+}
+
+.safe-send__decrypted-message.error .decrypted-message__success {
+  display: none;
+}
+
+.decrypted-message__failure-message {
+  display: none;
+}
+
+.safe-send__decrypted-message[data-status-code="404"] .decrypted-message__failure-404 {
+  display: block;
+}
+
+.safe-send__decrypted-message[data-status-code="500"] .decrypted-message__failure-500 {
+  display: block;
+}
+
+.safe-send__decrypted-message:not([data-status-code="404"]):not([data-status-code="500"]) .decrypted-message__failure-other {
+  display: none;
+}
