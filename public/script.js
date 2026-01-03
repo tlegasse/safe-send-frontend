@@ -11,10 +11,14 @@ class SafeSendApp {
         this.decoder = new TextDecoder("utf-8");
 
         this.setupElements()
-        this.setupEncrpytionVals()
+        this.init()
+    }
+
+    async init() {
+        await this.setupEncrpytionVals()
         this.setupListeners()
         this.retrieveUrlParams()
-        this.setupAppState()
+        await this.setupAppState()
     }
 
     setupElements() {
@@ -71,7 +75,7 @@ class SafeSendApp {
         const raw = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
         return await window.crypto.subtle.importKey(
             "raw",
-            raw,
+            raw.buffer,
             "AES-GCM",
             false,
             ["decrypt"]
@@ -157,7 +161,7 @@ class SafeSendApp {
                 iv
             },
             this.key,
-            payload.buffer
+            payload.buffer.slice(payload.byteOffset, payload.byteOffset + payload.byteLength)
         );
 
         const arr = new Uint8Array(decrypted)
