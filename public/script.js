@@ -15,7 +15,7 @@ class SafeSendApp {
     }
 
     async init() {
-        await this.setupEncrpytionVals()
+        await this.setupEncryptionVals()
         this.setupListeners()
         this.retrieveUrlParams()
         await this.setupAppState()
@@ -57,7 +57,7 @@ class SafeSendApp {
         const url = new URL(window.location)
     }
 
-    async setupEncrpytionVals() {
+    async setupEncryptionVals() {
         this.iv = window.crypto.getRandomValues(new Uint8Array(12));
         this.key = await window.crypto.subtle.generateKey(
             { name: "AES-GCM", length: 256 },
